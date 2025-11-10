@@ -4,6 +4,8 @@ import tifffile as tiff
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns # Importar seaborn
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
@@ -11,7 +13,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
 
-# --- 1. Configuración ---
+# --- 1. Configuración (Sin Cambios) ---
 
 IM_SIZE = 256
 # Ruta de la carpeta principal de datos
@@ -23,7 +25,7 @@ LEARNING_RATE = 0.001
 EPOCHS = 50
 BATCH_SIZE = 32
 
-
+# Funciones load_data, create_cnn_model, y carga de datos (Sin Cambios)
 
 def load_data(data_dir, categories, im_size):
     """Carga imágenes TIFF desde las carpetas y las preprocesa."""
@@ -45,7 +47,7 @@ def load_data(data_dir, categories, im_size):
                 except Exception as e:
                     # print(f"Error al leer/procesar la imagen {img_name}: {e}")
                     pass
-    return np.array(data, dtype=object)
+    return np.array(data, dtype=object) 
 
 # Cargar los datos
 all_data = load_data(DATA_DIR, CATEGORIES, IM_SIZE)
@@ -67,7 +69,7 @@ print("\n--- Estadísticas de los Datos ---")
 print(f"Forma de X_train: {X_train.shape}")
 print(f"Forma de X_test: {X_test.shape}")
 
-# --- 3. Ponderación de Clases (Por Desbalance) ---
+# --- 3. Ponderación de Clases (Sin Cambios) ---
 
 # Calcular los pesos de clase para la ponderación inversa por frecuencia
 class_weights = class_weight.compute_class_weight(
@@ -80,7 +82,7 @@ class_weights_dict = dict(enumerate(class_weights))
 print("\n--- Pesos de Clase Calculados para el Entrenamiento ---")
 print(class_weights_dict)
 
-# --- 4. Definición del Modelo CNN (con Tasa de Aprendizaje Ajustada) ---
+# --- 4. Definición del Modelo CNN (Sin Cambios) ---
 
 def create_cnn_model(input_shape, num_classes, learning_rate):
     """Define y compila el modelo CNN."""
@@ -117,31 +119,30 @@ input_shape = (IM_SIZE, IM_SIZE, CHANNELS)
 model = create_cnn_model(input_shape, NUM_CLASSES, LEARNING_RATE)
 model.summary()
 
-# --- 5. Aumentación de Datos y Entrenamiento ---
+# --- 5. Aumentación de Datos y Entrenamiento (Sin Cambios) ---
 
 print("\n--- Configurando Aumentación de Datos y Entrenamiento ---")
 
 # Generador de Aumentación de Datos
-# Implementa espejos vertical y horizontal, así como otras transformaciones para robustecer el modelo.
 datagen = ImageDataGenerator(
-    horizontal_flip=True, # Mirror horizontal
-    vertical_flip=True,   # Mirror vertical
-    rotation_range=20,    # Rotación leve
-    zoom_range=0.1,       # Zoom aleatorio
+    horizontal_flip=True, 
+    vertical_flip=True,   
+    rotation_range=20,    
+    zoom_range=0.1,       
     fill_mode='nearest'
 )
 
-# Entrenar el modelo usando el generador de datos (fit_generator)
+# Entrenar el modelo
 history = model.fit(
     datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
     steps_per_epoch=len(X_train) // BATCH_SIZE,
-    epochs=EPOCHS, # 5 Épocas solicitadas
+    epochs=EPOCHS, 
     validation_data=(X_test, y_test_cat),
-    class_weight=class_weights_dict, # Usar la ponderación de clases
+    class_weight=class_weights_dict, 
     verbose=1
 )
 
-# --- 6. Evaluación del Modelo y Métricas Finales ---
+# --- 6. Evaluación del Modelo y Métricas Finales (Cálculo de Matriz) ---
 
 print("\n--- Evaluación Final en el Conjunto de Prueba ---")
 
@@ -160,5 +161,69 @@ print(classification_report(y_test, y_pred, target_names=CATEGORIES))
 
 # Matriz de Confusión
 conf_mat = confusion_matrix(y_test, y_pred)
-print("\n--- Matriz de Confusión ---")
+print("\n--- Matriz de Confusión Numérica ---")
 print(conf_mat)
+
+# --- 7. Visualización de Resultados (Gráficas) ---
+
+def plot_confusion_matrix(cm, classes, save_path):
+    """Plotea la matriz de confusión como un heatmap."""
+    plt.figure(figsize=(6, 6))
+    sns.heatmap(
+        cm, 
+        annot=True, # Mostrar números en cada celda
+        fmt="d", # Formato de número entero
+        cmap="Blues", # Mapa de color
+        xticklabels=classes, 
+        yticklabels=classes,
+        cbar=False
+    )
+    plt.title('Matriz de Confusión')
+    plt.ylabel('Etiqueta Verdadera')
+    plt.xlabel('Etiqueta Predicha')
+    plt.savefig(save_path)
+    plt.close()
+    print(f"✅ Matriz de Confusión guardada en: {save_path}")
+
+
+print("\n--- Generando Gráficas de Pérdida, Métrica y Matriz de Confusión ---")
+
+# Ruta donde se guardará el mapa de calor de la matriz
+CM_PLOTS_PATH = '/app/matriz_confusion.png'
+plot_confusion_matrix(conf_mat, CATEGORIES, CM_PLOTS_PATH)
+
+
+# --- Gráficas de Overfitting (Pérdida y Métrica) ---
+
+acc_key = 'accuracy' if 'accuracy' in history.history else 'acc'
+val_acc_key = 'val_accuracy' if 'val_accuracy' in history.history else 'val_acc'
+
+# Crear una figura con dos subgráficas
+plt.figure(figsize=(14, 5))
+
+# 1. Gráfica de Pérdida (Loss)
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Pérdida de Entrenamiento (Train Loss)')
+plt.plot(history.history['val_loss'], label='Pérdida de Validación (Val Loss)')
+plt.title('Pérdida (Loss) por Época')
+plt.ylabel('Pérdida')
+plt.xlabel('Época')
+plt.legend()
+plt.grid(True)
+
+# 2. Gráfica de Métrica (Accuracy/Precisión)
+plt.subplot(1, 2, 2)
+plt.plot(history.history[acc_key], label='Métrica de Entrenamiento (Train Acc)')
+plt.plot(history.history[val_acc_key], label='Métrica de Validación (Val Acc)')
+plt.title(f'Métrica ({acc_key.capitalize()}) por Época')
+plt.ylabel(acc_key.capitalize())
+plt.xlabel('Época')
+plt.legend()
+plt.grid(True)
+
+# Guardar la imagen de las métricas de overfitting
+METRICS_PLOTS_PATH = '/app/graficas_overfitting.png'
+plt.savefig(METRICS_PLOTS_PATH)
+plt.close()
+
+print(f"✅ Gráficas de Overfitting guardadas exitosamente en: {METRICS_PLOTS_PATH}")
