@@ -21,14 +21,12 @@ DATA_DIR = './data'
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 EPOCHS = 50
 BATCH_SIZE = 32
 
-# Funciones load_data, create_cnn_model, y carga de datos (Sin Cambios)
-
 def load_data(data_dir, categories, im_size):
-    """Carga imágenes TIFF desde las carpetas y las preprocesa."""
+    """Carga imágenes TIFF desde las carpetas y procesamiento"""
     data = []
     for category in categories:
         path = os.path.join(data_dir, category)
@@ -40,7 +38,7 @@ def load_data(data_dir, categories, im_size):
                     img_array = tiff.imread(os.path.join(path, img_name))
                     
                     if img_array.shape[:2] == (im_size, im_size):
-                        # Normalización (asumiendo 16-bit Landsat)
+                        # Normalización (16-bit Landsat)
                         normalized_img = img_array.astype('float32') / 65535.0
                         data.append([normalized_img, class_num])
                     
@@ -82,7 +80,7 @@ class_weights_dict = dict(enumerate(class_weights))
 print("\n--- Pesos de Clase Calculados para el Entrenamiento ---")
 print(class_weights_dict)
 
-# --- 4. Definición del Modelo CNN (Sin Cambios) ---
+# --- 4. Definición del Modelo CNN ---
 
 def create_cnn_model(input_shape, num_classes, learning_rate):
     """Define y compila el modelo CNN."""
@@ -156,7 +154,7 @@ y_pred_probs = model.predict(X_test)
 y_pred = np.argmax(y_pred_probs, axis=1) # Obtener la clase predicha (0 o 1)
 
 # Reporte de Clasificación (Métricas Finales detalladas)
-print("\n--- Reporte de Clasificación (Métricas Finales) ---")
+print("\n--- Reporte de Clasificación ---")
 print(classification_report(y_test, y_pred, target_names=CATEGORIES))
 
 # Matriz de Confusión
@@ -226,4 +224,4 @@ METRICS_PLOTS_PATH = '/app/graficas_overfitting.png'
 plt.savefig(METRICS_PLOTS_PATH)
 plt.close()
 
-print(f"✅ Gráficas de Overfitting guardadas exitosamente en: {METRICS_PLOTS_PATH}")
+print(f"Gráficas de Overfitting guardadas exitosamente en: {METRICS_PLOTS_PATH}")
