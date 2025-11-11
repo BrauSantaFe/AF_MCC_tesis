@@ -1,5 +1,5 @@
 # Usa la imagen base de Python. Asegúrate de que la versión es compatible.
-FROM python:3.12-slim
+FROM tensorflow/tensorflow:latest-gpu-jupyter
 
 # Establece el directorio de trabajo dentro del contenedor.
 WORKDIR /app
@@ -14,4 +14,4 @@ COPY . .
 
 # Define el comando de ejecución predeterminado.
 # Tu script espera que 'data' esté en ./data, que en el contenedor es /app/data.
-CMD ["python", "modelo_cnn.py"]
+CMD ["python", "cnn.py"]
