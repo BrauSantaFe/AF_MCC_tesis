@@ -22,7 +22,7 @@ NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
 LEARNING_RATE = 0.00005
 EPOCHS = 30
-BATCH_SIZE = 64 # Se mantiene en 64
+BATCH_SIZE = 64
 
 # ... (El resto de las funciones load_data, carga de datos y cálculo de pesos sigue igual) ...
 
@@ -73,11 +73,11 @@ print("\n--- Configurando Aumentación de Datos y Callbacks ---")
 
 # Generador de Aumentación de Datos (Se mantiene igual)
 datagen = ImageDataGenerator(
-    horizontal_flip=True, 
-    vertical_flip=True,   
-    rotation_range=20,    
-    zoom_range=0.1,       
-    fill_mode='nearest'
+    horizontal_flip=True,
+    vertical_flip=True,
+    rotation_range=20,
+    zoom_range=0.1,
+    fill_mode='nearest'
 )
 
 # Definición de Callbacks
@@ -102,13 +102,13 @@ callbacks = [
 
 # Entrenar el modelo
 history = model.fit(
-    datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
-    steps_per_epoch=len(X_train) // BATCH_SIZE,
-    epochs=EPOCHS, 
-    validation_data=(X_test, y_test_cat),
-    class_weight=class_weights_dict, 
-    callbacks=callbacks, # ⬅️ ¡Usar los callbacks aquí!
-    verbose=1
+    datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
+    steps_per_epoch=len(X_train) // BATCH_SIZE,
+    epochs=EPOCHS,
+    validation_data=(X_test, y_test_cat),
+    class_weight=class_weights_dict,
+    callbacks=callbacks,
+    verbose=1
 )
 
 
@@ -153,7 +153,7 @@ def plot_confusion_matrix(cm, classes, save_path):
     plt.xlabel('Etiqueta Predicha')
     plt.savefig(save_path)
     plt.close()
-    print(f"✅ Matriz de Confusión guardada en: {save_path}")
+    print(f"Matriz de Confusión guardada en: {save_path}")
 
 
 print("\n--- Generando Gráficas de Pérdida, Métrica y Matriz de Confusión ---")
