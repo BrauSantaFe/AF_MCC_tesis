@@ -220,7 +220,7 @@ plt.legend()
 plt.grid(True)
 
 # Guardar la imagen de las métricas de overfitting
-METRICS_PLOTS_PATH = '/app/graficas_overfitting.png'
+METRICS_PLOTS_PATH = '/data/graficas_overfitting.png'
 plt.savefig(METRICS_PLOTS_PATH)
 plt.close()
 
