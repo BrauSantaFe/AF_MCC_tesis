@@ -24,7 +24,113 @@ LEARNING_RATE = 0.00005
 EPOCHS = 30
 BATCH_SIZE = 64
 
-# ... (El resto de las funciones load_data, carga de datos y cálculo de pesos sigue igual) ...
+def load_data(data_dir, categories, im_size):
+
+    """Carga imágenes TIFF desde las carpetas y procesamiento"""
+
+    data = []
+
+    for category in categories:
+
+        path = os.path.join(data_dir, category)
+
+        class_num = categories.index(category)
+
+        print(f"Cargando imágenes de: {category}...")
+
+        for img_name in os.listdir(path):
+
+            if img_name.endswith(('.tif', '.tiff')):
+
+                try:
+
+                    img_array = tiff.imread(os.path.join(path, img_name))
+
+
+
+                    if img_array.shape[:2] == (im_size, im_size):
+
+                        # Normalización (16-bit Landsat)
+
+                        normalized_img = img_array.astype('float32') / 65535.0
+
+                        data.append([normalized_img, class_num])
+
+
+
+                except Exception as e:
+
+                    # print(f"Error al leer/procesar la imagen {img_name}: {e}")
+
+                    pass
+
+    return np.array(data, dtype=object) 
+
+
+
+# Cargar los datos
+
+all_data = load_data(DATA_DIR, CATEGORIES, IM_SIZE)
+
+
+
+# Separar características (X) y etiquetas (y)
+
+X = np.array([i[0] for i in all_data])
+
+y = np.array([i[1] for i in all_data])
+
+
+
+# Separar conjuntos de entrenamiento y prueba
+
+X_train, X_test, y_train, y_test = train_test_split(
+
+    X, y, test_size=0.2, random_state=42, stratify=y
+
+)
+
+
+
+# Convertir etiquetas a codificación one-hot
+
+y_train_cat = to_categorical(y_train, num_classes=NUM_CLASSES)
+
+y_test_cat = to_categorical(y_test, num_classes=NUM_CLASSES)
+
+
+
+print("\n--- Estadísticas de los Datos ---")
+
+print(f"Forma de X_train: {X_train.shape}")
+
+print(f"Forma de X_test: {X_test.shape}")
+
+
+
+# --- 3. Ponderación de Clases (Sin Cambios) ---
+
+
+
+# Calcular los pesos de clase para la ponderación inversa por frecuencia
+
+class_weights = class_weight.compute_class_weight(
+
+    class_weight='balanced',
+
+    classes=np.unique(y_train),
+
+    y=y_train
+
+)
+
+class_weights_dict = dict(enumerate(class_weights))
+
+
+
+print("\n--- Pesos de Clase Calculados para el Entrenamiento ---")
+
+print(class_weights_dict)
 
 # --- 4. Definición del Modelo CNN (¡CON DROPOUT!) ---
 
