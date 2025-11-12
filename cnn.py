@@ -17,13 +17,13 @@ from tensorflow.keras.optimizers import Adam
 
 IM_SIZE = 256
 # Ruta de la carpeta principal de datos
-DATA_DIR = './data' 
+DATA_DIR = '/data' 
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
 LEARNING_RATE = 0.0001
-EPOCHS = 30
-BATCH_SIZE = 64
+EPOCHS = 50
+BATCH_SIZE = 32
 
 def load_data(data_dir, categories, im_size):
     """Carga imágenes TIFF desde las carpetas y procesamiento"""
