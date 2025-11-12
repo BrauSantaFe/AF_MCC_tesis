@@ -29,37 +29,38 @@ BATCH_SIZE = 64 # Se mantiene en 64
 # --- 4. Definición del Modelo CNN (¡CON DROPOUT!) ---
 
 def create_cnn_model(input_shape, num_classes, learning_rate):
-    """Define y compila el modelo CNN con regularización Dropout."""
-    model = Sequential([
-        # Capa de Convolución 1
-        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
-        MaxPooling2D((2, 2)),
-        Dropout(0.25), # ⬅️ Dropout después de la primera capa de pooling
-        
-        # Capa de Convolución 2
-        Conv2D(64, (3, 3), activation='relu'),
-        MaxPooling2D((2, 2)),
-        Dropout(0.25), # ⬅️ Dropout después de la segunda capa de pooling
-        
-        # Capa de Convolución 3
-        Conv2D(128, (3, 3), activation='relu'),
-        MaxPooling2D((2, 2)),
-        
-        # Aplanar y Capas Densas
-        Flatten(),
-        Dense(128, activation='relu'),
-        Dropout(0.5), # ⬅️ Dropout más fuerte antes de la capa de salida
-        
-        # Capa de Salida
-        Dense(num_classes, activation='softmax')
-    ])
+    """Define y compila el modelo CNN con regularización Dropout."""  
+    model = Sequential([
+        # Capa de Convolución 1
+        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        MaxPooling2D((2, 2)),
+        Dropout(0.25),  # Dropout después de la primera capa de pooling
 
-    # Compilación
-    adam_optimizer = Adam(learning_rate=learning_rate) 
-    model.compile(optimizer=adam_optimizer,
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    return model
+        # Capa de Convolución 2
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Dropout(0.25),  # Dropout después de la segunda capa de pooling
+
+        # Capa de Convolución 3
+        Conv2D(128, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+
+        # Aplanar y Capas Densas
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),  # Dropout más fuerte antes de la capa de salida
+
+        # Capa de Salida
+        Dense(num_classes, activation='softmax')
+    ])
+
+    # Compilación
+    adam_optimizer = Adam(learning_rate=learning_rate)
+    model.compile(optimizer=adam_optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
+
 
 # Crear el modelo
 input_shape = (IM_SIZE, IM_SIZE, CHANNELS)
