@@ -16,7 +16,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau # ⬅️
 
 # --- 1. Configuración ---
 IM_SIZE = 256
-DATA_DIR = '/data' 
+DATA_DIR = '/data'
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
