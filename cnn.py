@@ -22,8 +22,8 @@ CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
 LEARNING_RATE = 0.0001
-EPOCHS = 50
-BATCH_SIZE = 32
+EPOCHS = 30
+BATCH_SIZE = 64
 
 def load_data(data_dir, categories, im_size):
     """Carga imágenes TIFF desde las carpetas y procesamiento"""
