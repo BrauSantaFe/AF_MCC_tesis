@@ -187,7 +187,7 @@ def plot_confusion_matrix(cm, classes, save_path):
 print("\n--- Generando Gráficas de Pérdida, Métrica y Matriz de Confusión ---")
 
 # Ruta donde se guardará el mapa de calor de la matriz
-CM_PLOTS_PATH = '/app/matriz_confusion.png'
+CM_PLOTS_PATH = '/data/matriz_confusion.png'
 plot_confusion_matrix(conf_mat, CATEGORIES, CM_PLOTS_PATH)
 
 
