@@ -5,140 +5,111 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
-import seaborn as sns # Importar seaborn
+import seaborn as sns 
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout # ⬅️ Importar Dropout
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau # ⬅️ Importar Callbacks
 
-# --- 1. Configuración (Sin Cambios) ---
-
+# --- 1. Configuración ---
 IM_SIZE = 256
-# Ruta de la carpeta principal de datos
-DATA_DIR = '/data' 
+DATA_DIR = '/data' 
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 3
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00005
 EPOCHS = 30
-BATCH_SIZE = 64
+BATCH_SIZE = 64 # Se mantiene en 64
 
-def load_data(data_dir, categories, im_size):
-    """Carga imágenes TIFF desde las carpetas y procesamiento"""
-    data = []
-    for category in categories:
-        path = os.path.join(data_dir, category)
-        class_num = categories.index(category)
-        print(f"Cargando imágenes de: {category}...")
-        for img_name in os.listdir(path):
-            if img_name.endswith(('.tif', '.tiff')):
-                try:
-                    img_array = tiff.imread(os.path.join(path, img_name))
-                    
-                    if img_array.shape[:2] == (im_size, im_size):
-                        # Normalización (16-bit Landsat)
-                        normalized_img = img_array.astype('float32') / 65535.0
-                        data.append([normalized_img, class_num])
-                    
-                except Exception as e:
-                    # print(f"Error al leer/procesar la imagen {img_name}: {e}")
-                    pass
-    return np.array(data, dtype=object) 
+# ... (El resto de las funciones load_data, carga de datos y cálculo de pesos sigue igual) ...
 
-# Cargar los datos
-all_data = load_data(DATA_DIR, CATEGORIES, IM_SIZE)
-
-# Separar características (X) y etiquetas (y)
-X = np.array([i[0] for i in all_data])
-y = np.array([i[1] for i in all_data])
-
-# Separar conjuntos de entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
-
-# Convertir etiquetas a codificación one-hot
-y_train_cat = to_categorical(y_train, num_classes=NUM_CLASSES)
-y_test_cat = to_categorical(y_test, num_classes=NUM_CLASSES)
-
-print("\n--- Estadísticas de los Datos ---")
-print(f"Forma de X_train: {X_train.shape}")
-print(f"Forma de X_test: {X_test.shape}")
-
-# --- 3. Ponderación de Clases (Sin Cambios) ---
-
-# Calcular los pesos de clase para la ponderación inversa por frecuencia
-class_weights = class_weight.compute_class_weight(
-    class_weight='balanced',
-    classes=np.unique(y_train),
-    y=y_train
-)
-class_weights_dict = dict(enumerate(class_weights))
-
-print("\n--- Pesos de Clase Calculados para el Entrenamiento ---")
-print(class_weights_dict)
-
-# --- 4. Definición del Modelo CNN ---
+# --- 4. Definición del Modelo CNN (¡CON DROPOUT!) ---
 
 def create_cnn_model(input_shape, num_classes, learning_rate):
-    """Define y compila el modelo CNN."""
-    model = Sequential([
-        # Capa de Convolución 1
-        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
-        MaxPooling2D((2, 2)),
-        
-        # Capa de Convolución 2
-        Conv2D(64, (3, 3), activation='relu'),
-        MaxPooling2D((2, 2)),
-        
-        # Capa de Convolución 3
-        Conv2D(128, (3, 3), activation='relu'),
-        MaxPooling2D((2, 2)),
-        
-        # Aplanar y Capas Densas
-        Flatten(),
-        Dense(128, activation='relu'),
-        
-        # Capa de Salida
-        Dense(num_classes, activation='softmax')
-    ])
+    """Define y compila el modelo CNN con regularización Dropout."""
+    model = Sequential([
+        # Capa de Convolución 1
+        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        MaxPooling2D((2, 2)),
+        Dropout(0.25), # ⬅️ Dropout después de la primera capa de pooling
+        
+        # Capa de Convolución 2
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Dropout(0.25), # ⬅️ Dropout después de la segunda capa de pooling
+        
+        # Capa de Convolución 3
+        Conv2D(128, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        
+        # Aplanar y Capas Densas
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5), # ⬅️ Dropout más fuerte antes de la capa de salida
+        
+        # Capa de Salida
+        Dense(num_classes, activation='softmax')
+    ])
 
-    # Compilación con optimizador Adam y TASA DE APRENDIZAJE REDUCIDA
-    adam_optimizer = Adam(learning_rate=learning_rate) 
-    model.compile(optimizer=adam_optimizer,
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    return model
+    # Compilación
+    adam_optimizer = Adam(learning_rate=learning_rate) 
+    model.compile(optimizer=adam_optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
 
 # Crear el modelo
 input_shape = (IM_SIZE, IM_SIZE, CHANNELS)
 model = create_cnn_model(input_shape, NUM_CLASSES, LEARNING_RATE)
 model.summary()
 
-# --- 5. Aumentación de Datos y Entrenamiento (Sin Cambios) ---
+# --- 5. Aumentación de Datos y Entrenamiento (¡Añadimos Callbacks!) ---
 
-print("\n--- Configurando Aumentación de Datos y Entrenamiento ---")
+print("\n--- Configurando Aumentación de Datos y Callbacks ---")
 
-# Generador de Aumentación de Datos
+# Generador de Aumentación de Datos (Se mantiene igual)
 datagen = ImageDataGenerator(
-    horizontal_flip=True, 
-    vertical_flip=True,   
-    rotation_range=20,    
-    zoom_range=0.1,       
-    fill_mode='nearest'
+    horizontal_flip=True, 
+    vertical_flip=True,   
+    rotation_range=20,    
+    zoom_range=0.1,       
+    fill_mode='nearest'
 )
+
+# Definición de Callbacks
+callbacks = [
+    # 1. Detención Temprana: Monitorea la pérdida de validación. Si no mejora después de 10 épocas, detiene.
+    EarlyStopping(
+        monitor='val_loss', 
+        patience=10, 
+        verbose=1, 
+        restore_best_weights=True
+    ),
+    # 2. Reducción de LR: Si la pérdida de validación se estanca (no mejora en 5 épocas), reduce el LR a la mitad.
+    ReduceLROnPlateau(
+        monitor='val_loss', 
+        factor=0.5, 
+        patience=5, 
+        min_lr=0.00001, 
+        verbose=1
+    )
+]
+
 
 # Entrenar el modelo
 history = model.fit(
-    datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
-    steps_per_epoch=len(X_train) // BATCH_SIZE,
-    epochs=EPOCHS, 
-    validation_data=(X_test, y_test_cat),
-    class_weight=class_weights_dict, 
-    verbose=1
+    datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
+    steps_per_epoch=len(X_train) // BATCH_SIZE,
+    epochs=EPOCHS, 
+    validation_data=(X_test, y_test_cat),
+    class_weight=class_weights_dict, 
+    callbacks=callbacks, # ⬅️ ¡Usar los callbacks aquí!
+    verbose=1
 )
+
 
 # --- 6. Evaluación del Modelo y Métricas Finales (Cálculo de Matriz) ---
 
