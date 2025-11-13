@@ -5,5 +5,5 @@ matplotlib
 torch
 tifffile
 seaborn
-Pillow'
+Pillow
 PyWavelets
