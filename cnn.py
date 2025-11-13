@@ -6,7 +6,7 @@ from sklearn.utils import class_weight
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns 
-
+import cv2
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout # ⬅️ Importar Dropout
 from tensorflow.keras.utils import to_categorical
@@ -44,7 +44,7 @@ def load_data(data_dir, categories, im_size):
 
                 try:
 
-                    img_array = tiff.imread(os.path.join(path, img_name))
+                    img_array = cv2.imread(os.path.join(path, img_name))
 
 
 
