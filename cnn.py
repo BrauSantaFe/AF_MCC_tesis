@@ -15,7 +15,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 # --- 1. Configuración ---
 IM_SIZE = 256
 # Asegúrate de que esta ruta apunta a tu carpeta con las imágenes R-B
-DATA_DIR = '/home/brauliosg/Documents/ProyectoIncendios/data_R_B' 
+DATA_DIR = '/data' 
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 1  # <--- MANTENER EN 1 PARA ESCALA DE GRISES
