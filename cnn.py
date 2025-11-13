@@ -40,7 +40,7 @@ def load_data(data_dir, categories, im_size):
 
         for img_name in os.listdir(path):
 
-            if img_name.endswith(('.tif', '.tiff')):
+            if img_name.endswith(('.tif', '.tiff','.png')):
 
                 try:
 
