@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import tifffile as tiff
+# Se elimina tifffile ya que solo usaremos PNG
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.metrics import classification_report, confusion_matrix
@@ -8,128 +8,113 @@ import matplotlib.pyplot as plt
 import seaborn as sns 
 import cv2
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout # ⬅️ Importar Dropout
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout 
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau # ⬅️ Importar Callbacks
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau 
 
 # --- 1. Configuración ---
 IM_SIZE = 256
 DATA_DIR = '/data'
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
-CHANNELS = 3
+# : Usamos 1 canal para escalogramas en escala de grises.
+CHANNELS = 1 
 LEARNING_RATE = 0.00005
 EPOCHS = 30
 BATCH_SIZE = 64
 
-def load_data(data_dir, categories, im_size):
-
-    """Carga imágenes TIFF desde las carpetas y procesamiento"""
-
+# ----------------------------------------------------------------------
+# --- FUNCIÓN CORREGIDA ---
+# ----------------------------------------------------------------------
+def load_data(data_dir, categories, im_size, channels):
+    """
+    Carga imágenes PNG (8-bit) y realiza la normalización por 255.0.
+    """
     data = []
 
+    # Bandera para cv2.imread: IMREAD_GRAYSCALE (0) si CHANNELS=1
+    read_flag = cv2.IMREAD_GRAYSCALE if channels == 1 else cv2.IMREAD_COLOR
+
     for category in categories:
-
         path = os.path.join(data_dir, category)
-
         class_num = categories.index(category)
-
         print(f"Cargando imágenes de: {category}...")
 
         for img_name in os.listdir(path):
+            file_path = os.path.join(path, img_name)
 
-            if img_name.endswith(('.tif', '.tiff','.png')):
-
+            if img_name.endswith(('.png', '.jpg', '.jpeg')): # Solo leer formatos de 8 bits
                 try:
+                    # Cargar la imagen con el modo de canales adecuado
+                    img_array = cv2.imread(file_path, read_flag)
+                    
+                    if img_array is None:
+                         # Ignorar si no se puede leer
+                        continue
+                        
+                    # 1. Normalización (8-bit PNG): Valores 0-255 a 0.0-1.0
+                    # 🚨 CAMBIO CLAVE 2: Normalización por 255.0
+                    normalized_img = img_array.astype('float32') / 255.0
+                    
+                    # 2. Ajuste de forma: Si es 1 canal (escala de grises), aseguramos (H, W, 1)
+                    if channels == 1 and normalized_img.ndim == 2:
+                        normalized_img = np.expand_dims(normalized_img, axis=-1)
 
-                    img_array = cv2.imread(os.path.join(path, img_name))
-
-
-
-                    if img_array.shape[:2] == (im_size, im_size):
-
-                        # Normalización (16-bit Landsat)
-
-                        normalized_img = img_array.astype('float32') / 65535.0
-
+                    # 3. Comprobación de tamaño y número de canales
+                    if normalized_img.shape[:2] == (im_size, im_size) and normalized_img.shape[-1] == channels:
                         data.append([normalized_img, class_num])
 
-
-
                 except Exception as e:
-
                     # print(f"Error al leer/procesar la imagen {img_name}: {e}")
-
                     pass
-
+            
     return np.array(data, dtype=object) 
-
+# ----------------------------------------------------------------------
+# --- FIN DE LA FUNCIÓN CORREGIDA ---
+# ----------------------------------------------------------------------
 
 
 # Cargar los datos
-
-all_data = load_data(DATA_DIR, CATEGORIES, IM_SIZE)
-
+# 🚨 CAMBIO CLAVE 3: Pasar el número de canales a la función
+all_data = load_data(DATA_DIR, CATEGORIES, IM_SIZE, CHANNELS) 
 
 
 # Separar características (X) y etiquetas (y)
-
 X = np.array([i[0] for i in all_data])
-
 y = np.array([i[1] for i in all_data])
 
 
-
 # Separar conjuntos de entrenamiento y prueba
-
 X_train, X_test, y_train, y_test = train_test_split(
-
     X, y, test_size=0.2, random_state=42, stratify=y
-
 )
 
 
-
 # Convertir etiquetas a codificación one-hot
-
 y_train_cat = to_categorical(y_train, num_classes=NUM_CLASSES)
-
 y_test_cat = to_categorical(y_test, num_classes=NUM_CLASSES)
 
 
-
 print("\n--- Estadísticas de los Datos ---")
-
 print(f"Forma de X_train: {X_train.shape}")
-
 print(f"Forma de X_test: {X_test.shape}")
-
 
 
 # --- 3. Ponderación de Clases (Sin Cambios) ---
 
 
-
 # Calcular los pesos de clase para la ponderación inversa por frecuencia
-
 class_weights = class_weight.compute_class_weight(
-
     class_weight='balanced',
-
     classes=np.unique(y_train),
-
     y=y_train
-
 )
-
 class_weights_dict = dict(enumerate(class_weights))
 
 
-
 print("\n--- Pesos de Clase Calculados para el Entrenamiento ---")
-
 print(class_weights_dict)
 
 # --- 4. Definición del Modelo CNN (¡CON DROPOUT!) ---
@@ -187,14 +172,14 @@ datagen = ImageDataGenerator(
 
 # Definición de Callbacks
 callbacks = [
-    # 1. Detención Temprana: Monitorea la pérdida de validación. Si no mejora después de 10 épocas, detiene.
+    # 1. Detención Temprana
     EarlyStopping(
         monitor='val_loss', 
         patience=10, 
         verbose=1, 
         restore_best_weights=True
     ),
-    # 2. Reducción de LR: Si la pérdida de validación se estanca (no mejora en 5 épocas), reduce el LR a la mitad.
+    # 2. Reducción de LR
     ReduceLROnPlateau(
         monitor='val_loss', 
         factor=0.5, 
@@ -246,9 +231,9 @@ def plot_confusion_matrix(cm, classes, save_path):
     plt.figure(figsize=(6, 6))
     sns.heatmap(
         cm, 
-        annot=True, # Mostrar números en cada celda
-        fmt="d", # Formato de número entero
-        cmap="Blues", # Mapa de color
+        annot=True, 
+        fmt="d", 
+        cmap="Blues", 
         xticklabels=classes, 
         yticklabels=classes,
         cbar=False
