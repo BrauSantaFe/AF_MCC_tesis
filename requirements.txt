@@ -1,9 +1,8 @@
-tensorflow 
+tensorflow
 scikit-learn
 numpy
 matplotlib
 torch
 tifffile
 seaborn
-io
-PIL
+Pillow
