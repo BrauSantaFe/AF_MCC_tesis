@@ -5,6 +5,7 @@ from sklearn.utils import class_weight
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import cv2  # <--- NUEVA IMPORTACIÓN PARA LECTURA ROBUSTA EN GRISES
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.utils import to_categorical
@@ -13,42 +14,56 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 # --- 1. Configuración ---
 IM_SIZE = 256
-DATA_DIR = '/data'
+# Asegúrate de que esta ruta apunta a tu carpeta con las imágenes R-B
+DATA_DIR = '/home/brauliosg/Documents/ProyectoIncendios/data_R_B' 
 CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
-CHANNELS = 3
+CHANNELS = 1  # <--- MANTENER EN 1 PARA ESCALA DE GRISES
 LEARNING_RATE = 0.00005
 EPOCHS = 30
 BATCH_SIZE = 64
 
-# --- 2. Función para cargar imágenes ---
+# --- 2. Función para cargar imágenes (MODIFICADA) ---
 def load_data(data_dir, categories, im_size, channels):
     data = []
     for category in categories:
         path = os.path.join(data_dir, category)
         class_num = categories.index(category)
-        print(f"Cargando imágenes de: {category}...")
+        print(f"Cargando imágenes de: {category} (1 Canal)...")
 
         for img_name in os.listdir(path):
             file_path = os.path.join(path, img_name)
-            if img_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            # Extensión .tif/.tiff añadida para compatibilidad con tus archivos
+            if img_name.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff')):
                 try:
-                    img_array = plt.imread(file_path)
-
-                    # Asegurar 3 canales
-                    if img_array.ndim == 2:
-                        img_array = np.stack((img_array,) * 3, axis=-1)
-                    elif img_array.shape[2] == 4:
-                        img_array = img_array[:, :, :3]
-
-                    # Redimensionar si es necesario
+                    # **CAMBIO CLAVE: Leer la imagen directamente en escala de grises (1 canal)**
+                    # cv2.IMREAD_GRAYSCALE asegura que la imagen se lee en 1 canal
+                    img_array = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    
+                    if img_array is None:
+                        print(f"⚠️ Error: No se pudo leer la imagen {file_path}")
+                        continue
+                        
+                    # Redimensionar si es necesario (cv2.resize es mejor que np.resize)
                     if img_array.shape[:2] != (im_size, im_size):
-                        img_array = np.resize(img_array, (im_size, im_size, channels))
+                        img_array = cv2.resize(img_array, (im_size, im_size))
 
+                    # Normalizar a float32 [0.0, 1.0]
                     img_array = img_array.astype('float32') / 255.0
+                    
+                    # **Asegurar la forma (H, W, 1) para Keras/TensorFlow**
+                    # Si la imagen es (H, W), la convertimos a (H, W, 1)
+                    if img_array.ndim == 2:
+                        img_array = np.expand_dims(img_array, axis=-1)
+                    
+                    # Una última verificación de la forma (opcional, pero buena práctica)
+                    if img_array.shape != (im_size, im_size, channels):
+                         print(f"⚠️ Error: Forma final incorrecta para {file_path}: {img_array.shape}")
+                         continue
+                         
                     data.append((img_array, class_num))
                 except Exception as e:
-                    print(f"Error al cargar {file_path}: {e}")
+                    print(f"Error al procesar {file_path}: {e}")
     return data
 
 # --- 3. Carga de datos ---
@@ -69,10 +84,11 @@ y_train_cat = to_categorical(y_train, num_classes=NUM_CLASSES)
 y_test_cat = to_categorical(y_test, num_classes=NUM_CLASSES)
 
 print("\n--- Estadísticas de los Datos ---")
-print(f"Forma de X_train: {X_train.shape}")
+# La forma ahora debería ser (num_samples, 256, 256, 1)
+print(f"Forma de X_train: {X_train.shape}") 
 print(f"Forma de X_test: {X_test.shape}")
 
-# --- 4. Ponderación de clases ---
+# --- 4. Ponderación de clases (sin cambios) ---
 class_weights = class_weight.compute_class_weight(
     class_weight='balanced',
     classes=np.unique(y_train),
@@ -82,7 +98,8 @@ class_weights_dict = dict(enumerate(class_weights))
 print("\n--- Pesos de Clase Calculados ---")
 print(class_weights_dict)
 
-# --- 5. Definición del modelo CNN ---
+# --- 5. Definición del modelo CNN (sin cambios) ---
+# El modelo usa el valor de CHANNELS=1 automáticamente a través de input_shape
 def create_cnn_model(input_shape, num_classes, learning_rate):
     model = Sequential([
         Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
@@ -106,7 +123,7 @@ def create_cnn_model(input_shape, num_classes, learning_rate):
 model = create_cnn_model((IM_SIZE, IM_SIZE, CHANNELS), NUM_CLASSES, LEARNING_RATE)
 model.summary()
 
-# --- 6. Entrenamiento ---
+# --- 6. Entrenamiento (sin cambios) ---
 callbacks = [
     EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True),
     ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001, verbose=1)
@@ -122,7 +139,7 @@ history = model.fit(
     verbose=1
 )
 
-# --- 7. Evaluación ---
+# --- 7. Evaluación (sin cambios) ---
 print("\n--- Evaluación Final ---")
 loss, accuracy = model.evaluate(X_test, y_test_cat, verbose=0)
 print(f"Precisión: {accuracy:.4f}")
@@ -138,7 +155,7 @@ conf_mat = confusion_matrix(y_test, y_pred)
 print("\n--- Matriz de Confusión ---")
 print(conf_mat)
 
-# --- 8. Visualización ---
+# --- 8. Visualización (sin cambios) ---
 def plot_confusion_matrix(cm, classes, save_path):
     plt.figure(figsize=(6, 6))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -150,7 +167,7 @@ def plot_confusion_matrix(cm, classes, save_path):
     plt.close()
     print(f"Matriz de Confusión guardada en: {save_path}")
 
-CM_PLOTS_PATH = './data/matriz_confusion.png'
+CM_PLOTS_PATH = './data/matriz_confusion_gris.png'
 plot_confusion_matrix(conf_mat, CATEGORIES, CM_PLOTS_PATH)
 
 acc_key = 'accuracy' if 'accuracy' in history.history else 'acc'
@@ -176,7 +193,7 @@ plt.ylabel('Precisión')
 plt.legend()
 plt.grid(True)
 
-METRICS_PLOTS_PATH = './data/graficas_overfitting.png'
+METRICS_PLOTS_PATH = './data/graficas_overfitting_gris.png'
 plt.savefig(METRICS_PLOTS_PATH)
 plt.close()
 print(f"Gráficas guardadas en: {METRICS_PLOTS_PATH}")
