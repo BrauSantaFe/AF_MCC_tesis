@@ -20,7 +20,7 @@ CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 1  # <--- MANTENER EN 1 PARA ESCALA DE GRISES
 LEARNING_RATE = 0.00005
-EPOCHS = 30
+EPOCHS = 50
 BATCH_SIZE = 64
 
 # --- 2. Función para cargar imágenes (MODIFICADA) ---
@@ -167,7 +167,7 @@ def plot_confusion_matrix(cm, classes, save_path):
     plt.close()
     print(f"Matriz de Confusión guardada en: {save_path}")
 
-CM_PLOTS_PATH = './data/matriz_confusion_gris.png'
+CM_PLOTS_PATH = '/data/matriz_confusion_gris.png'
 plot_confusion_matrix(conf_mat, CATEGORIES, CM_PLOTS_PATH)
 
 acc_key = 'accuracy' if 'accuracy' in history.history else 'acc'
@@ -193,7 +193,7 @@ plt.ylabel('Precisión')
 plt.legend()
 plt.grid(True)
 
-METRICS_PLOTS_PATH = './data/graficas_overfitting_gris.png'
+METRICS_PLOTS_PATH = '/data/graficas_overfitting_gris.png'
 plt.savefig(METRICS_PLOTS_PATH)
 plt.close()
 print(f"Gráficas guardadas en: {METRICS_PLOTS_PATH}")
