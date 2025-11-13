@@ -20,7 +20,7 @@ CATEGORIES = ['fire', 'no_fire']
 NUM_CLASSES = len(CATEGORIES)
 CHANNELS = 1  # <--- MANTENER EN 1 PARA ESCALA DE GRISES
 LEARNING_RATE = 0.00005
-EPOCHS = 50
+EPOCHS = 40
 BATCH_SIZE = 64
 
 # --- 2. Función para cargar imágenes (MODIFICADA) ---
